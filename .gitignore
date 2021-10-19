@@ -1,0 +1,39 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+coverageprofile.out
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# IDE directories and files
+.idea
+.vscode
+.undodir
+*.swp
+coverage
+config-dev.yml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+go.sum
+.vs
+
+# Trash
+.DS_Store
+
+# local env files
+.env
+.env.local
+.env.*.local
+
