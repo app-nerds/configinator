@@ -19,7 +19,7 @@ environment, and flags. It does this by adding tags to your
 struct. For example:
 
   type Config struct {
-	  Host `flag:"host" env:"HOST" default:"localhost:8080" description:"Host and port to bind to"`
+	  Host string `flag:"host" env:"HOST" default:"localhost:8080" description:"Host and port to bind to"`
   }
 
 The above example will accept a command line flag of "host",
