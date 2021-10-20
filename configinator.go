@@ -9,13 +9,9 @@ import (
 	"github.com/app-nerds/configinator/env"
 )
 
-var (
-	envFile map[string]string
-)
-
 /*
-New initializes a provided struct with values from defaults,
-environment, and flags. It does this by adding tags to your
+Behold initializes a provided struct with values from defaults,
+environment, .env file, and flags. It does this by adding tags to your
 struct. For example:
 
   type Config struct {
@@ -35,7 +31,7 @@ func Behold(config interface{}) {
 		containers []*container.Container
 	)
 
-	envFile = make(map[string]string)
+	envFile := make(map[string]string)
 
 	/*
 	 * If we have an environment file, load it
@@ -130,6 +126,20 @@ func Behold(config interface{}) {
 
 			if value, ok := c.FlagString(); ok {
 				c.SetConfigString(value)
+			}
+		}
+
+		if c.IsTime() {
+			if value, ok := c.EnvTime(); ok {
+				c.SetConfigTime(value)
+			}
+
+			if value, ok := c.EnvFileTime(); ok {
+				c.SetConfigTime(value)
+			}
+
+			if value, ok := c.FlagTime(); ok {
+				c.SetConfigTime(value)
 			}
 		}
 	}

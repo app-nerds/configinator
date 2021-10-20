@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Supported struct tags
 const (
 	TagFlagName     string = "flag"
 	TagEnvName      string = "env"
@@ -17,18 +18,32 @@ const (
 	TagDescription  string = "description"
 )
 
+// Custom errors
 var (
 	ErrNoFlagName = fmt.Errorf("no flag name")
 	ErrCantSet    = fmt.Errorf("can't set private fields")
+
+	timeFormats = []string{
+		"2006-01-02",
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04:05Z",
+		"2006-01-02T15:04:05 MST",
+		"2006-01-02T15:04:05-0700",
+	}
 )
 
+/*
+Container is a host to a given struct field and it's tag configuration. It is
+here where the logic to get values and determine if values are set as flags,
+env, etc.. is done.
+*/
 type Container struct {
 	config       interface{}
 	defaultValue string
 	envFile      map[string]string
 	FieldType    string
 	fieldValue   reflect.Value
-	// flagSet      *flag.FlagSet
 
 	ConfigValue reflect.Value
 	Field       reflect.StructField
@@ -41,8 +56,13 @@ type Container struct {
 	IntValue    *int
 	FloatValue  *float64
 	StringValue *string
+	TimeValue   *string
 }
 
+/*
+New creates a new Container. This will verify that the struct
+field can be set and has the required tags.
+*/
 func New(config interface{}, index int, envFile map[string]string) (*Container, error) {
 	var (
 		hasFlag bool
@@ -54,7 +74,6 @@ func New(config interface{}, index int, envFile map[string]string) (*Container, 
 		config:    config,
 		envFile:   envFile,
 		FieldType: strings.ToLower(t.Field(index).Type.String()),
-		// flagSet:   flagSet,
 
 		ConfigValue: reflect.ValueOf(config).Elem(),
 		Field:       t.Field(index),
@@ -131,6 +150,10 @@ func (c *Container) DefaultValueToString() string {
 }
 
 func (c *Container) DefaultValueToTime() time.Time {
+	if !c.isTime(c.defaultValue) {
+		return time.Time{}
+	}
+
 	result := c.parseTime(c.defaultValue)
 	return result
 }
@@ -230,6 +253,11 @@ func (c *Container) EnvFileString() (string, bool) {
 }
 
 func (c *Container) EnvFileTime() (time.Time, bool) {
+	if value, ok := c.envFile[c.EnvName]; ok {
+		return c.parseTime(value), true
+	}
+
+	return time.Time{}, false
 }
 
 func (c *Container) FlagBool() (bool, bool) {
@@ -265,6 +293,11 @@ func (c *Container) FlagString() (string, bool) {
 }
 
 func (c *Container) FlagTime() (time.Time, bool) {
+	if c.TimeValue != nil && *c.TimeValue != c.defaultValue {
+		return c.parseTime(*c.TimeValue), true
+	}
+
+	return time.Time{}, false
 }
 
 func (c *Container) IsBool() bool {
@@ -303,6 +336,10 @@ func (c *Container) SetConfigString(value string) {
 	c.fieldValue.SetString(value)
 }
 
+func (c *Container) SetConfigTime(value time.Time) {
+	c.fieldValue.Set(reflect.ValueOf(value))
+}
+
 func (c *Container) SetDefaultValueOnConfig() {
 	if c.IsBool() {
 		c.SetConfigBool(c.DefaultValueToBool())
@@ -318,6 +355,10 @@ func (c *Container) SetDefaultValueOnConfig() {
 
 	if c.IsString() {
 		c.SetConfigString(c.DefaultValueToString())
+	}
+
+	if c.IsTime() {
+		c.SetConfigTime(c.DefaultValueToTime())
 	}
 }
 
@@ -337,23 +378,28 @@ func (c *Container) addFlag() {
 	if c.IsString() {
 		c.StringValue = flag.String(c.FlagName, c.DefaultValueToString(), c.description)
 	}
+
+	if c.IsTime() {
+		c.TimeValue = flag.String(c.FlagName, c.DefaultValueToString(), c.description)
+	}
 }
 
 func (c *Container) parseTime(value string) time.Time {
-	formats := []string{
-		"2006-01-02",
-		"2006-01-02 15:04:05",
-		"2006-01-02T15:04:05",
-		"2006-01-02T15:04:05Z",
-		"2006-01-02T15:04:05 MST",
-		"2006-01-02T15:04:05-0700",
-	}
-
-	for _, f := range formats {
+	for _, f := range timeFormats {
 		if t, err := time.Parse(f, value); err == nil {
 			return t
 		}
 	}
 
 	return time.Time{}
+}
+
+func (c *Container) isTime(value string) bool {
+	for _, f := range timeFormats {
+		if _, err := time.Parse(f, value); err == nil {
+			return true
+		}
+	}
+
+	return false
 }
