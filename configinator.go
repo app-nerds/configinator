@@ -60,7 +60,7 @@ func Behold(config interface{}) {
 	/*
 	 * Parse flags
 	 */
-	if len(os.Args) > 1 {
+	if len(os.Args) > 1 && !flag.Parsed() {
 		flag.Parse()
 	}
 

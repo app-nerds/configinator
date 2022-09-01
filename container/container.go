@@ -99,7 +99,9 @@ func New(config interface{}, index int, envFile map[string]string) (*Container, 
 	result.defaultValue = result.field.Tag.Get(TagDefaultValue)
 	result.description = result.field.Tag.Get(TagDescription)
 
-	result.addFlag()
+	if !flag.Parsed() {
+		result.addFlag()
+	}
 	result.SetDefaultValueOnConfig()
 	return result, nil
 }
